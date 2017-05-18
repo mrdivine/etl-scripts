@@ -20,7 +20,7 @@ import pickle
 from glob import glob
 import tarfile
 import re
-
+from datetime import datetime
 
 
 
@@ -43,6 +43,10 @@ ANONYMIZATION_FIELDS = ['StudyDate','SeriesDate','AcquisitionDate','ContentDate'
 
 #SAVE_DIR = '/home/divine/HCC_MultiScale/PatientImageData/Thaiss_v1/RadiologyData/test2'
 
+
+SAVE_DIR = os.path.join(os.getcwd(),"anonymization_" + datetime.now().strftime("%Y_%m_%d_%H_%M"))
+if not os.path.isdir(SAVE_DIR):
+    os.mkdir(SAVE_DIR)
 
 FNAME_COMPONENTS = ['patient_name','time_point','modality','pet_tracer','organ','date']
 
@@ -186,7 +190,15 @@ def anonymize_dicom(dicom_file,patient_name='anonymous',
 
     # now save the new dicom
     new_name = os.path.join(path_to_save,new_dicom_name)
-    im.save_as(new_name)
+    try:
+        im.save_as(new_name)
+    except ValueError:
+        #TODO got put more accurate values here.
+        im.file_meta.MediaStorageSOPClassUID = '1.2.840.10008.5.1.4.1.1.2'
+        im.file_meta.MediaStorageSOPInstanceUID = "1.2.3"
+        im.file_meta.ImplementationClassUID = "1.2.3.4"
+        im.save_as(new_name)
+
     if fields_to_return:
         return returned_fields
 
@@ -356,7 +368,7 @@ def anonymize_to_qbic(study_folder='',save_dir=SAVE_DIR):
             # changing each time to directory because of issues with the
             # encoding of folder names -- let's see how this works.
             #dicom_file = os.path.join(root,patient_timepoint_modality,sequence_name,f)
-            print("file name: {}".format(f))
+            #print("file name: {}".format(f))
             dicom_file = f
             rand_num =  np.random.randint(10000000000000,size=1)[0]
             new_dicom_name = str(rand_num)+'.dcm'
@@ -456,7 +468,7 @@ def main():
         multiple_anonymize_to_qbic(root_folder=root_dir,save_dir=SAVE_DIR,regex=r"S\d+TP\d_\S+")
     # given just that one special folder that you want to anonymize. Here it is.
     if study_dir:
-        anonymize_to_qbic(study_folder=root,save_dir=SAVE_DIR)
+        anonymize_to_qbic(study_folder=study_dir,save_dir=SAVE_DIR)
 
 
 if __name__ == '__main__':
